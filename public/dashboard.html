@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VulnBank - Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="dashboard-page">
+  <div class="bg-grid"></div>
+
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-left">
+      <div class="nav-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        <span>VulnBank</span>
+      </div>
+      <div class="nav-links">
+        <a href="/dashboard" class="nav-link active">Dashboard</a>
+      </div>
+    </div>
+    <div class="nav-right">
+      <span class="user-info" id="userInfo">Loading...</span>
+      <button class="btn-logout" onclick="logout()">Đăng xuất</button>
+    </div>
+  </nav>
+
+  <main class="dashboard-main">
+    <div class="dashboard-grid">
+      <!-- Left Column -->
+      <div class="dashboard-left">
+        <!-- Profile Lookup (IDOR) -->
+        <div class="card">
+          <div class="card-header">
+            <h2>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              Hồ sơ cá nhân
+            </h2>
+          </div>
+          <div class="profile-section">
+            <div class="profile-lookup" style="display: none;">
+              <label>Mã người dùng (User ID)</label>
+              <div class="profile-input-row">
+                <input type="number" id="profileId" min="1" value="1">
+                <button onclick="loadProfile()" class="btn-primary">Xem hồ sơ</button>
+              </div>
+              <div class="profile-url" id="profileUrl" style="display: none;">
+                API: <code>/api/profile/1</code>
+              </div>
+            </div>
+            <div id="profileResult" class="profile-result">
+              <div class="loading-spinner"><div class="spinner"></div><p>Chọn User ID và nhấn Xem hồ sơ</p></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Account Balance -->
+        <div class="card">
+          <div class="card-header">
+            <h2>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+              </svg>
+              Tài khoản
+            </h2>
+          </div>
+          <div class="balance-section">
+            <div class="balance-card">
+              <span class="balance-label">Số dư khả dụng</span>
+              <span class="balance-amount" id="balanceAmount">***,***,*** ₫</span>
+              <span class="balance-note">Đăng nhập để xem số dư</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Posts Feed -->
+      <div class="dashboard-right">
+        <div class="card posts-card">
+          <div class="card-header">
+            <h2>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              Thông báo hệ thống
+            </h2>
+          </div>
+          <div class="post-create">
+            <label for="newPostContent">Đăng thông báo mới</label>
+            <textarea id="newPostContent" rows="4" placeholder="Nhập nội dung bài viết..." style="width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; line-height: 1.4;"></textarea>
+            <button class="btn-primary" onclick="createPost()" style="margin-bottom: 16px;">Đăng bài</button>
+            <div id="postStatus" class="post-status" style="min-height: 24px; color: #c0392b;"></div>
+          </div>
+          <div id="postsFeed" class="posts-feed">
+            <div class="loading-spinner">
+              <div class="spinner"></div>
+              <p>Đang tải...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function getSession() {
+      try {
+        const cookie = document.cookie.split(';').find(c => c.trim().startsWith('session='));
+        if (cookie) {
+          return JSON.parse(decodeURIComponent(cookie.split('=').slice(1).join('=')));
+        }
+      } catch(e) {}
+      return null;
+    }
+
+    function logout() {
+      document.cookie = 'session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+      window.location.href = '/';
+    }
+
+    const session = getSession();
+    if (session) {
+      document.getElementById('userInfo').innerHTML = `
+        <span class="role-badge ${session.role}">${session.role}</span>
+        ${session.username}
+      `;
+      document.getElementById('profileId').value = session.userId;
+      document.getElementById('profileUrl').innerHTML = `API: <code>/api/profile/${session.userId}</code>`;
+
+      const balances = { 1: '2,450,000,000', 2: '15,320,000', 3: '8,750,000', 4: '3,200,000', 5: '45,600,000' };
+      document.getElementById('balanceAmount').textContent = (balances[session.userId] || '10,000,000') + ' ₫';
+      document.querySelector('.balance-note').textContent = 'Tài khoản chính';
+    } else {
+      document.getElementById('userInfo').textContent = 'Guest';
+    }
+
+    document.getElementById('profileId').addEventListener('input', function() {
+      document.getElementById('profileUrl').innerHTML = `API: <code>/api/profile/${this.value}</code>`;
+    });
+
+    async function loadProfile() {
+      const id = document.getElementById('profileId').value;
+      const resultDiv = document.getElementById('profileResult');
+      resultDiv.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>Đang tải...</p></div>';
+
+      try {
+        const res = await fetch(`/api/profile/${id}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+          resultDiv.innerHTML = `<div class="profile-error">❌ ${data.message}</div>`;
+          return;
+        }
+
+        resultDiv.innerHTML = `
+          <div class="profile-card-result">
+            <div class="profile-avatar-large">${data.fullname ? data.fullname.charAt(0).toUpperCase() : '?'}</div>
+            <div class="profile-details">
+              <div class="profile-row">
+                <span class="profile-label">Họ và tên</span>
+                <span class="profile-value"><strong>${data.fullname || 'N/A'}</strong></span>
+              </div>
+              <div class="profile-row">
+                <span class="profile-label">Email</span>
+                <span class="profile-value">${data.email || 'N/A'}</span>
+              </div>
+              <div class="profile-row">
+                <span class="profile-label">Số điện thoại</span>
+                <span class="profile-value">${data.phone || 'N/A'}</span>
+              </div>
+              
+              
+              <div class="profile-row">
+                <span class="profile-label">Quyền</span>
+                <span class="profile-value"><span class="role-badge ${data.role}">${data.role}</span></span>
+              </div>
+            </div>
+          </div>
+        `;
+      } catch(err) {
+        resultDiv.innerHTML = `<div class="profile-error">❌ Lỗi kết nối!</div>`;
+      }
+    }
+
+    async function createPost() {
+      const contentInput = document.getElementById('newPostContent');
+      const status = document.getElementById('postStatus');
+      const content = contentInput.value.trim();
+      if (!content) {
+        status.textContent = 'Vui lòng nhập nội dung bài viết.';
+        return;
+      }
+
+      const author = session ? session.username : 'Guest';
+      try {
+        const res = await fetch('/api/posts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ author, content })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          status.textContent = data.message || 'Đăng bài thất bại.';
+          return;
+        }
+
+        status.textContent = data.message || 'Đăng bài thành công!';
+        contentInput.value = '';
+        loadPosts();
+      } catch (err) {
+        status.textContent = 'Lỗi khi gửi bài viết.';
+      }
+    }
+
+    async function loadPosts() {
+      const feed = document.getElementById('postsFeed');
+      try {
+        const res = await fetch('/api/posts');
+        const posts = await res.json();
+
+        if (posts.length === 0) {
+          feed.innerHTML = '<div class="empty-state">Chưa có thông báo nào.</div>';
+          return;
+        }
+
+        feed.innerHTML = '';
+        posts.forEach(post => {
+          const item = document.createElement('div');
+          item.className = 'post-item';
+
+          const header = document.createElement('div');
+          header.className = 'post-header';
+
+          const avatar = document.createElement('div');
+          avatar.className = 'post-avatar';
+          avatar.textContent = post.author.charAt(0).toUpperCase();
+
+          const meta = document.createElement('div');
+          meta.className = 'post-meta';
+
+          const name = document.createElement('strong');
+          name.textContent = post.author;
+
+          const time = document.createElement('span');
+          time.className = 'post-time';
+          time.textContent = new Date(post.created_at).toLocaleString('vi-VN');
+
+          meta.appendChild(name);
+          meta.appendChild(time);
+          header.appendChild(avatar);
+          header.appendChild(meta);
+
+          const content = document.createElement('div');
+          content.className = 'post-content';
+          content.innerHTML = post.content;
+
+          item.appendChild(header);
+          item.appendChild(content);
+          feed.appendChild(item);
+        });
+      } catch(err) {
+        feed.innerHTML = '<div class="empty-state error">Lỗi khi tải thông báo!</div>';
+      }
+    }
+
+    if (session) {
+      loadProfile();
+    }
+    loadPosts();
+  </script>
+</body>
+</html>

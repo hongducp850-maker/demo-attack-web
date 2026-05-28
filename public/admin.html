@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VulnBank - Quản trị</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="dashboard-page">
+  <div class="bg-grid"></div>
+
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-left">
+      <div class="nav-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        <span>VulnBank</span>
+      </div>
+      <div class="nav-links">
+        <a href="/dashboard" class="nav-link">Dashboard</a>
+        <a href="/admin" class="nav-link active admin-link">Quản trị</a>
+      </div>
+    </div>
+    <div class="nav-right">
+      <span class="user-info" id="userInfo">Loading...</span>
+      <button class="btn-logout" onclick="logout()">Đăng xuất</button>
+    </div>
+  </nav>
+
+  <main class="dashboard-main">
+    <div class="dashboard-grid">
+      <!-- Users Management -->
+      <div class="dashboard-left">
+        <div class="card">
+          <div class="card-header">
+            <h2>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              Quản lý người dùng
+            </h2>
+          </div>
+          <div id="usersTable" class="admin-table-wrapper">
+            <div class="loading-spinner"><div class="spinner"></div><p>Đang tải...</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div class="dashboard-right">
+        <!-- Admin Logs -->
+        <div class="card">
+          <div class="card-header">
+            <h2>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              Nhật ký hệ thống
+            </h2>
+          </div>
+          <div id="logsTable" class="admin-table-wrapper">
+            <div class="loading-spinner"><div class="spinner"></div><p>Đang tải...</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function getSession() {
+      try {
+        const cookie = document.cookie.split(';').find(c => c.trim().startsWith('session='));
+        if (cookie) {
+          return JSON.parse(decodeURIComponent(cookie.split('=').slice(1).join('=')));
+        }
+      } catch(e) {}
+      return null;
+    }
+
+    function logout() {
+      document.cookie = 'session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+      window.location.href = '/';
+    }
+
+    const session = getSession();
+    
+    if (session) {
+      document.getElementById('userInfo').innerHTML = `
+        <span class="role-badge ${session.role}">${session.role}</span>
+        ${session.username}
+      `;
+    } else {
+      document.getElementById('userInfo').textContent = 'Guest';
+    }
+
+    async function loadUsers() {
+      try {
+        const res = await fetch('/api/admin/users');
+        const users = await res.json();
+        
+        document.getElementById('usersTable').innerHTML = `
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Password</th>
+                <th>Role</th>
+                <th>Email</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${users.map(u => `
+                <tr>
+                  <td><span class="id-badge">#${u.id}</span></td>
+                  <td><strong>${u.username}</strong></td>
+                  <td><code class="password-reveal">${u.password}</code></td>
+                  <td><span class="role-badge ${u.role}">${u.role}</span></td>
+                  <td>${u.email}</td>
+                  <td>
+                    <button class="btn-small btn-danger" onclick="deleteUser(${u.id})">Xóa</button>
+                    <button class="btn-small btn-warning" onclick="changeRole(${u.id}, 'admin')">→ Admin</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      } catch(err) {
+        document.getElementById('usersTable').innerHTML = '<div class="empty-state error">Lỗi tải dữ liệu!</div>';
+      }
+    }
+
+    async function loadLogs() {
+      try {
+        const res = await fetch('/api/admin/logs');
+        const logs = await res.json();
+        
+        document.getElementById('logsTable').innerHTML = `
+          <div class="log-list">
+            ${logs.map(log => `
+              <div class="log-item">
+                <div class="log-action ${log.action.toLowerCase()}">${log.action}</div>
+                <div class="log-details">${log.details}</div>
+                <div class="log-time">${new Date(log.timestamp).toLocaleString('vi-VN')}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } catch(err) {
+        document.getElementById('logsTable').innerHTML = '<div class="empty-state error">Lỗi tải logs!</div>';
+      }
+    }
+
+    async function deleteUser(id) {
+      if (!confirm('Bạn có chắc muốn xóa user này?')) return;
+      
+      try {
+        const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        alert(data.message);
+        loadUsers();
+      } catch(err) {
+        alert('Lỗi!');
+      }
+    }
+
+    async function changeRole(id, role) {
+      try {
+        const res = await fetch(`/api/admin/users/${id}/role`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role })
+        });
+        const data = await res.json();
+        alert(data.message);
+        loadUsers();
+      } catch(err) {
+        alert('Lỗi!');
+      }
+    }
+
+    loadUsers();
+    loadLogs();
+  </script>
+</body>
+</html>

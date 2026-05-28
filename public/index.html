@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VulnBank - Đăng nhập</title>
+  <meta name="description" content="Hệ thống ngân hàng trực tuyến VulnBank">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page">
+  <!-- Animated Background -->
+  <div class="bg-grid"></div>
+  <div class="floating-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+    <div class="shape shape-4"></div>
+  </div>
+
+  <div class="login-container">
+    <!-- Left Panel - Info -->
+    <div class="login-info">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M9 12l2 2 4-4" stroke-dasharray="10" stroke-dashoffset="0">
+              <animate attributeName="stroke-dashoffset" values="10;0" dur="1s" fill="freeze"/>
+            </path>
+          </svg>
+        </div>
+        <h1>VulnBank</h1>
+      </div>
+      <p class="tagline">Hệ thống Ngân hàng Trực tuyến</p>
+      
+      <div class="feature-cards">
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <div class="feature-info">
+            <h3>Bảo mật cao</h3>
+            <p>Hệ thống bảo vệ tài khoản 24/7</p>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💳</div>
+          <div class="feature-info">
+            <h3>Giao dịch nhanh</h3>
+            <p>Chuyển khoản tức thì mọi lúc mọi nơi</p>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <div class="feature-info">
+            <h3>Quản lý thông minh</h3>
+            <p>Theo dõi chi tiêu và đầu tư dễ dàng</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel - Login Form -->
+    <div class="login-form-wrapper">
+      <div class="login-form-card">
+        <div class="form-header">
+          <h2>Đăng nhập</h2>
+          <p>Chào mừng quay lại! Vui lòng đăng nhập vào tài khoản.</p>
+        </div>
+
+        <form id="loginForm" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label for="username">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              Tên đăng nhập
+            </label>
+            <input type="text" id="username" name="username" placeholder="Nhập tên đăng nhập..." required autocomplete="off">
+          </div>
+
+          <div class="form-group">
+            <label for="password">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              Mật khẩu
+            </label>
+            <div class="password-wrapper">
+              <input type="password" id="password" name="password" placeholder="Nhập mật khẩu..." required>
+              <button type="button" class="toggle-password" onclick="togglePassword()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" id="eyeIcon">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-login" id="loginBtn">
+            <span class="btn-text">Đăng nhập</span>
+            <span class="btn-loader" style="display:none;">
+              <svg viewBox="0 0 24 24" width="20" height="20">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31" stroke-linecap="round">
+                  <animateTransform attributeName="transform" type="rotate" values="0 12 12;360 12 12" dur="1s" repeatCount="indefinite"/>
+                </circle>
+              </svg>
+            </span>
+          </button>
+        </form>
+
+        <div id="loginResult" class="login-result" style="display:none;"></div>
+
+        <div class="form-footer">
+          <p class="forgot-link">Quên mật khẩu? <a href="#">Đặt lại tại đây</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function togglePassword() {
+      const input = document.getElementById('password');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const btn = document.getElementById('loginBtn');
+      const result = document.getElementById('loginResult');
+      
+      btn.querySelector('.btn-text').style.display = 'none';
+      btn.querySelector('.btn-loader').style.display = 'inline-flex';
+      btn.disabled = true;
+
+      try {
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+        
+        result.style.display = 'block';
+        
+        if (data.success) {
+          result.className = 'login-result success';
+          result.innerHTML = `
+            <div class="result-icon">✅</div>
+            <div class="result-info">
+              <strong>Đăng nhập thành công!</strong>
+              <p>Chào mừng, ${data.user.username}!</p>
+            </div>
+          `;
+          
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 1500);
+        } else {
+          result.className = 'login-result error';
+          result.innerHTML = `
+            <div class="result-icon">❌</div>
+            <div class="result-info">
+              <strong>${data.message}</strong>
+            </div>
+          `;
+        }
+      } catch (err) {
+        result.style.display = 'block';
+        result.className = 'login-result error';
+        result.innerHTML = `
+          <div class="result-icon">❌</div>
+          <div class="result-info"><strong>Lỗi kết nối server!</strong></div>
+        `;
+      }
+
+      btn.querySelector('.btn-text').style.display = 'inline';
+      btn.querySelector('.btn-loader').style.display = 'none';
+      btn.disabled = false;
+    }
+  </script>
+</body>
+</html>
